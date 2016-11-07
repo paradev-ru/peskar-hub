@@ -3,8 +3,14 @@ package main
 import (
 	"errors"
 	"flag"
+	"os"
 
 	"github.com/Sirupsen/logrus"
+)
+
+const (
+	DefaultListenAddr       = "0.0.0.0:8080"
+	DefaultParallelJobCount = 1
 )
 
 var (
@@ -30,8 +36,11 @@ func init() {
 
 func initConfig() error {
 	config = Config{
-		ParallelJobCount: 1,
+		ListenAddr:       DefaultListenAddr,
+		ParallelJobCount: DefaultParallelJobCount,
 	}
+
+	processEnv()
 
 	processFlags()
 
@@ -52,6 +61,13 @@ func initConfig() error {
 	}
 
 	return nil
+}
+
+func processEnv() {
+	listenAddr := os.Getenv("PESKAR_LISTEN_ADDR")
+	if len(listenAddr) > 0 {
+		config.ListenAddr = listenAddr
+	}
 }
 
 func processFlags() {
