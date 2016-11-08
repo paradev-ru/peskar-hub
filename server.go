@@ -299,7 +299,7 @@ func (s *Server) InvalidateZombieJobs() {
 				if !job.IsZombie() {
 					continue
 				}
-				logrus.Debugf("Switch state to 'pendign' for job '%s'", job.ID)
+				logrus.Debugf("Switch state to 'pending' for job '%s'", job.ID)
 				job.State = "pending"
 				s.j[id] = job
 			}
