@@ -23,3 +23,14 @@ deploy:
 	ssh -p 3389 leo@paradev.ru service peskar start
 	@echo "--> Getting last logs..."
 	@ssh -p 3389 leo@paradev.ru tail -n 25 /var/log/peskar.log
+
+test:
+	curl -X POST \
+		-d '{"download_url": "http://tps91.homeftp.net/Martian_Extended.avi"}' \
+		http://api.peskar.paradev.ru/job/
+	curl -X POST \
+		-d '{"download_url": "http://stormy.homeftp.net/Interstellar_IMAX_Edition.avi"}' \
+		http://api.peskar.paradev.ru/job/
+	curl -X POST \
+		-d '{"download_url": "http://stormy.homeftp.net/Daap_hyut_cam_mui.avi"}' \
+		http://api.peskar.paradev.ru/job/
