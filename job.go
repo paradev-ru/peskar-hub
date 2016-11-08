@@ -25,14 +25,14 @@ func (j *Job) IsCanceled() bool {
 }
 
 func (j *Job) IsDone() bool {
-	if j.State == "failed" || j.State == "canceled" || j.State == "finished" || j.State == "deleted" {
+	if j.State == "failed" || j.State == "finished" || j.IsCanceled() {
 		return true
 	}
 	return false
 }
 
 func (j *Job) IsActive() bool {
-	if j.State == "working" || j.State == "requested" {
+	if j.State == "working" || j.State == "requested" || !j.IsDone() {
 		return true
 	}
 	return false
