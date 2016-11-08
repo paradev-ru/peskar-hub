@@ -24,6 +24,10 @@ type Error struct {
 	Message string `json:"message,omitempty"`
 }
 
+type WithCORS struct {
+	r *mux.Router
+}
+
 func NewServer(config *Config) *Server {
 	s := &Server{
 		config: config,
@@ -288,8 +292,24 @@ func (s *Server) InvalidateZimbieWorkers() {
 	}
 }
 
+func (s *WithCORS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if origin := r.Header.Get("Origin"); origin != "" {
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods",
+			"POST, GET, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers",
+			"Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	}
+
+	if r.Method == "OPTIONS" {
+		return
+	}
+
+	s.r.ServeHTTP(w, r)
+}
+
 func (s *Server) Work() {
 	s.startedAt = time.Now()
-	http.Handle("/", s.r)
+	http.Handle("/", &WithCORS{s.r})
 	logrus.Fatal(http.ListenAndServe(s.config.ListenAddr, nil))
 }
