@@ -27,7 +27,7 @@ func main() {
 	s := NewServer(&config)
 
 	if err := s.Load(); err != nil {
-		logrus.Panic(err)
+		logrus.Error(err)
 	}
 
 	go s.Work()
