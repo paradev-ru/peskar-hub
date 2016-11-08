@@ -43,7 +43,6 @@ func main() {
 			if err := s.Shutdown(); err != nil {
 				logrus.Panic(err)
 			}
-			logrus.Info("Done")
 			os.Exit(0)
 		}
 	}

@@ -11,7 +11,7 @@ linux:
 	@mkdir -p bin/
 	@export GOOS=linux && export GOARCH=amd64 && bash --norc -i ./scripts/build.sh
 
-deploy:
+deploy: linux
 	@echo "--> Uploading..."
 	scp -P 3389 contrib/init/peskar.default leo@paradev.ru:/etc/default/peskar
 	scp -P 3389 contrib/init/peskar leo@paradev.ru:/etc/init.d/peskar

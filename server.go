@@ -345,11 +345,11 @@ func (s *Server) LoadData() error {
 	if err := s.c.Load("jobs", &s.j); err != nil {
 		return err
 	}
-	logrus.Debugf("Jobs loaded: %d", len(s.j))
+	logrus.Infof("Jobs loaded: %d", len(s.j))
 	if err := s.c.Load("workers", &s.j); err != nil {
 		return err
 	}
-	logrus.Debugf("Workers loaded: %d", len(s.w))
+	logrus.Infof("Workers loaded: %d", len(s.w))
 	return nil
 }
 
@@ -358,10 +358,10 @@ func (s *Server) SaveData() error {
 	if err := s.c.Save("jobs", s.j); err != nil {
 		return err
 	}
-	logrus.Debugf("Jobs saved: %d", len(s.j))
+	logrus.Infof("Jobs saved: %d", len(s.j))
 	if err := s.c.Save("workers", s.w); err != nil {
 		return err
 	}
-	logrus.Debugf("Workers saved: %d", len(s.w))
+	logrus.Infof("Workers saved: %d", len(s.w))
 	return nil
 }
