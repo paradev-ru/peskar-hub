@@ -1,11 +1,11 @@
 .PHONY: all linux deploy
 
+run:
+	@go run *.go --datadir=./data/ --log-level=debug
+
 all:
 	@mkdir -p bin/
 	@bash --norc -i ./scripts/build.sh
-
-run:
-	@go run *.go --datadir=./data/ --log-level=debug
 
 linux:
 	@mkdir -p bin/

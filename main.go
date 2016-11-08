@@ -31,8 +31,6 @@ func main() {
 	}
 
 	go s.Work()
-	go s.InvalidateZombieJobs()
-	go s.InvalidateZimbieWorkers()
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)

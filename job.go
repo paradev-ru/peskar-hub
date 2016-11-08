@@ -3,15 +3,16 @@ package main
 import "time"
 
 type Job struct {
-	ID          string    `json:"id,omitempty"`
-	State       string    `json:"state,omitempty"`
-	DownloadURL string    `json:"download_url,omitempty"`
-	InfoURL     string    `json:"info_url,omitempty"`
-	Name        string    `json:"name,omitempty"`
-	Log         string    `json:"log,omitempty"`
-	AddedAt     time.Time `json:"added_at,omitempty"`
-	StartedAt   time.Time `json:"started_at,omitempty"`
-	FinishedAt  time.Time `json:"finished_at,omitempty"`
+	ID          string `json:"id,omitempty"`
+	State       string `json:"state,omitempty"`
+	DownloadURL string `json:"download_url,omitempty"`
+	InfoURL     string `json:"info_url,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Log         string `json:"log,omitempty"`
+
+	AddedAt    time.Time `json:"added_at,omitempty"`
+	StartedAt  time.Time `json:"started_at,omitempty"`
+	FinishedAt time.Time `json:"finished_at,omitempty"`
 
 	updatedAt   time.Time `json:"-"`
 	requestedAt time.Time `json:"-"`

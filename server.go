@@ -309,6 +309,19 @@ func (s *Server) InvalidateZimbieWorkers() {
 	}
 }
 
+func (s *Server) PeriodicSave() {
+	next := time.After(15 * time.Minute)
+	for {
+		select {
+		case <-next:
+			if err := s.SaveData(); err != nil {
+				logrus.Error(err)
+			}
+			next = time.After(30 * time.Minute)
+		}
+	}
+}
+
 func (s *WithCORS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if origin := r.Header.Get("Origin"); origin != "" {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
@@ -326,6 +339,10 @@ func (s *WithCORS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) Work() {
+	go s.InvalidateZombieJobs()
+	go s.InvalidateZimbieWorkers()
+	go s.PeriodicSave()
+
 	s.startedAt = time.Now()
 	http.Handle("/", &WithCORS{s.r})
 	logrus.Fatal(http.ListenAndServe(s.config.ListenAddr, nil))
