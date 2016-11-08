@@ -42,7 +42,8 @@ func NewServer(config *Config) *Server {
 		c:      backend,
 	}
 	s.r = mux.NewRouter()
-	s.r.HandleFunc("/health/", s.HealthHandler)
+	s.r.HandleFunc("/version/", s.VersionHandler).Methods("GET")
+	s.r.HandleFunc("/health/", s.HealthHandler).Methods("GET")
 	s.r.HandleFunc("/ping/", s.JobNextHandler).Methods("GET")
 	s.r.HandleFunc("/worker/", s.WorkerListHandler).Methods("GET")
 	s.r.HandleFunc("/job/", s.JobListHandler).Methods("GET")
@@ -74,6 +75,11 @@ func (s *Server) NextJob() *Job {
 		}
 	}
 	return nil
+}
+
+func (s *Server) VersionHandler(w http.ResponseWriter, r *http.Request) {
+	encoder := json.NewEncoder(w)
+	encoder.Encode(Version)
 }
 
 func (s *Server) WorkerListHandler(w http.ResponseWriter, r *http.Request) {
