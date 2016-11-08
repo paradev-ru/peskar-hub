@@ -164,7 +164,7 @@ func (s *Server) AddJob(job Job) (Job, error) {
 	}
 
 	job.ID = jobID
-	job.AddedAt = time.Now().UTC().String()
+	job.AddedAt = time.Now().UTC()
 	job.State = "pending"
 
 	s.j[job.ID] = job
@@ -241,11 +241,11 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	if job.State != "" {
 		if j.State == "pending" && job.State == "working" {
-			j.StartedAt = time.Now().UTC().String()
+			j.StartedAt = time.Now().UTC()
 		}
 
 		if job.State == "finished" {
-			j.FinishedAt = time.Now().UTC().String()
+			j.FinishedAt = time.Now().UTC()
 		}
 	}
 
