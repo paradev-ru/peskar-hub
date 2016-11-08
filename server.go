@@ -83,8 +83,9 @@ func (s *Server) WorkerListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) UpdateWorkerInfo(r *http.Request) {
+	ip := getIP(r)
 	s.w[ip] = Worker{
-		IP:        getIP(r),
+		IP:        ip,
 		State:     "active",
 		UserAget:  r.Header.Get("User-Agent"),
 		lastVisit: time.Now(),
@@ -375,7 +376,7 @@ func (s *Server) LoadData() error {
 		return err
 	}
 	logrus.Infof("Jobs loaded: %d", len(s.j))
-	if err := s.c.Load("workers", &s.j); err != nil {
+	if err := s.c.Load("workers", &s.w); err != nil {
 		return err
 	}
 	logrus.Infof("Workers loaded: %d", len(s.w))
