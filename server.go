@@ -363,7 +363,6 @@ func (s *Server) Shutdown() error {
 }
 
 func (s *Server) LoadData() error {
-	logrus.Info("Loading data...")
 	if err := s.c.Load("jobs", &s.j); err != nil {
 		return err
 	}
@@ -376,7 +375,6 @@ func (s *Server) LoadData() error {
 }
 
 func (s *Server) SaveData() error {
-	logrus.Info("Saving data...")
 	if err := s.c.Save("jobs", s.j); err != nil {
 		return err
 	}
