@@ -77,7 +77,7 @@ func (s *Server) NextJob() *Job {
 }
 
 func (s *Server) WorkerListHandler(w http.ResponseWriter, r *http.Request) {
-	logrus.Info("Got job-list request")
+	logrus.Debug("Got job-list request")
 	encoder := json.NewEncoder(w)
 	encoder.Encode(s.w)
 }
@@ -93,7 +93,7 @@ func (s *Server) UpdateWorkerInfo(r *http.Request) {
 }
 
 func (s *Server) JobNextHandler(w http.ResponseWriter, r *http.Request) {
-	logrus.Info("Got job-next request")
+	logrus.Debug("Got job-next request")
 	s.UpdateWorkerInfo(r)
 	c := s.CountActiveJobs()
 	encoder := json.NewEncoder(w)
@@ -115,7 +115,7 @@ func (s *Server) JobNextHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) JobNewHandler(w http.ResponseWriter, r *http.Request) {
-	logrus.Info("Got job-new request")
+	logrus.Debug("Got job-new request")
 	var job Job
 	decoder := json.NewDecoder(r.Body)
 	encoder := json.NewEncoder(w)
@@ -138,11 +138,12 @@ func (s *Server) JobNewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logrus.Infof("Job '%s' created", j.ID)
 	encoder.Encode(j)
 }
 
 func (s *Server) JobListHandler(w http.ResponseWriter, r *http.Request) {
-	logrus.Info("Got job-list request")
+	logrus.Debug("Got job-list request")
 	encoder := json.NewEncoder(w)
 	encoder.Encode(s.j)
 }
@@ -173,7 +174,7 @@ func (s *Server) AddJob(job Job) (Job, error) {
 }
 
 func (s *Server) JobInfoHandler(w http.ResponseWriter, r *http.Request) {
-	logrus.Info("Got job-info request")
+	logrus.Debug("Got job-info request")
 	vars := mux.Vars(r)
 	encoder := json.NewEncoder(w)
 	if job, ok := s.j[vars["id"]]; ok {
@@ -188,10 +189,11 @@ func (s *Server) JobInfoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) JobDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	logrus.Info("Got job-delete request")
+	logrus.Debug("Got job-delete request")
 	vars := mux.Vars(r)
 	encoder := json.NewEncoder(w)
 	if job, ok := s.j[vars["id"]]; ok {
+		logrus.Infof("Job '%s' deleted", job.ID)
 		job.State = "deleted"
 		s.j[vars["id"]] = job
 		encoder.Encode(job)
@@ -249,6 +251,7 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	logrus.Infof("Job '%s' updated", job.ID)
 	s.j[vars["id"]] = j
 
 	encoder.Encode(j)

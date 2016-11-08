@@ -25,7 +25,7 @@ deploy: linux
 	@ssh -p 3389 leo@paradev.ru tail -n 25 /var/log/peskar.log
 
 logs:
-	@ssh -p 3389 leo@paradev.ru tail -n 200 /var/log/peskar.log
+	@ssh -p 3389 leo@paradev.ru tail -n 100 /var/log/peskar.log
 
 test:
 	curl -X POST -d '{"download_url": "http://tps91.homeftp.net/Martian_Extended.avi"}' http://api.peskar.paradev.ru/job/
