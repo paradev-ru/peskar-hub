@@ -246,9 +246,11 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 			j.StartedAt = time.Now().UTC()
 		}
 
-		if job.State == "finished" {
+		if job.IsDone() {
 			j.FinishedAt = time.Now().UTC()
 		}
+
+		j.State = job.State
 	}
 
 	logrus.Infof("Job '%s' updated", job.ID)
