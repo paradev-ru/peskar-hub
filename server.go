@@ -255,7 +255,7 @@ func (s *Server) HealthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) InvalidateZombieJobs() {
-	zombieTicker := time.NewTicker(5 * time.Minute)
+	zombieTicker := time.NewTicker(time.Minute)
 	for {
 		select {
 		case <-zombieTicker.C:
@@ -263,6 +263,7 @@ func (s *Server) InvalidateZombieJobs() {
 				if !job.IsZombie() {
 					continue
 				}
+				logrus.Debugf("Switch state to 'pendign' for job '%s'", job.ID)
 				job.State = "pending"
 				s.j[id] = job
 			}
@@ -271,7 +272,7 @@ func (s *Server) InvalidateZombieJobs() {
 }
 
 func (s *Server) InvalidateZimbieWorkers() {
-	zombieTicker := time.NewTicker(5 * time.Minute)
+	zombieTicker := time.NewTicker(time.Minute)
 	for {
 		select {
 		case <-zombieTicker.C:
@@ -279,6 +280,7 @@ func (s *Server) InvalidateZimbieWorkers() {
 				if !worker.IsZombie() {
 					continue
 				}
+				logrus.Debugf("Switch state to 'inactive' for worker '%s'", worker.IP)
 				worker.State = "inactive"
 				s.w[id] = worker
 			}
