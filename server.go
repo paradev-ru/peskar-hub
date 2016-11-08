@@ -227,16 +227,21 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if j.State == "pending" && job.State == "working" {
-		j.StartedAt = time.Now().UTC().String()
+	j.updatedAt = time.Now()
+	if job.Log != "" {
+		j.Log += job.Log
 	}
 
-	j.updatedAt = time.Now()
-	j.State = job.State
-	j.Log += job.Log
-	if job.State == "finished" {
-		j.FinishedAt = time.Now().UTC().String()
+	if job.State != "" {
+		if j.State == "pending" && job.State == "working" {
+			j.StartedAt = time.Now().UTC().String()
+		}
+
+		if job.State == "finished" {
+			j.FinishedAt = time.Now().UTC().String()
+		}
 	}
+
 	s.j[vars["id"]] = j
 
 	encoder.Encode(j)
