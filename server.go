@@ -100,7 +100,7 @@ func (s *Server) JobNextHandler(w http.ResponseWriter, r *http.Request) {
 	if c >= s.config.ParallelJobCount {
 		encoder.Encode(Error{
 			Code:    3,
-			Message: fmt.Sprintf("Only %d job(s) cant run parallel"),
+			Message: fmt.Sprintf("Only %d job(s) cant run parallel", s.config.ParallelJobCount),
 		})
 		return
 	}
