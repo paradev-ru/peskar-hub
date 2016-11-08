@@ -83,9 +83,8 @@ func (s *Server) WorkerListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) UpdateWorkerInfo(r *http.Request) {
-	ip := getIP(r)
 	s.w[ip] = Worker{
-		IP:        ip,
+		IP:        getIP(r),
 		State:     "active",
 		UserAget:  r.Header.Get("User-Agent"),
 		lastVisit: time.Now(),
@@ -100,7 +99,7 @@ func (s *Server) JobNextHandler(w http.ResponseWriter, r *http.Request) {
 	if c >= s.config.ParallelJobCount {
 		encoder.Encode(Error{
 			Code:    3,
-			Message: fmt.Sprintf("Only %d job(s) cant run parallel", s.config.ParallelJobCount),
+			Message: fmt.Sprintf("Only %d job(s) cant run parallel, current running %d job(s)", s.config.ParallelJobCount, c),
 		})
 		return
 	}

@@ -33,7 +33,7 @@ func (j *Job) IsDone() bool {
 }
 
 func (j *Job) IsActive() bool {
-	if j.State == "working" || j.State == "requested" || !j.IsDone() {
+	if j.State == "working" || j.State == "requested" || (j.State != "pending" && !j.IsDone()) {
 		return true
 	}
 	return false
