@@ -30,16 +30,12 @@ type WithCORS struct {
 }
 
 func NewServer(config *Config) *Server {
-	backend, err := NewBackend(config.DataDir)
-	if err != nil {
-		logrus.Panic(err)
-	}
-
+	client := NewBackend(config.DataDir)
 	s := &Server{
 		config: config,
 		j:      make(map[string]Job),
 		w:      make(map[string]Worker),
-		c:      backend,
+		c:      client,
 	}
 	s.r = mux.NewRouter()
 	s.r.HandleFunc("/version/", s.VersionHandler).Methods("GET")

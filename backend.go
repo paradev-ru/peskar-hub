@@ -17,8 +17,8 @@ type Client struct {
 	DataDir string
 }
 
-func NewBackend(datadir string) (*Client, error) {
-	return &Client{datadir}, nil
+func NewBackend(datadir string) *Client {
+	return &Client{datadir}
 }
 
 func transform(key string) string {
