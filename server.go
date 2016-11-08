@@ -237,8 +237,17 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	j.updatedAt = time.Now()
+
 	if job.Log != "" {
 		j.Log += job.Log
+	}
+
+	if job.InfoURL != "" {
+		j.InfoURL = job.InfoURL
+	}
+
+	if job.Name != "" {
+		j.Name = job.Name
 	}
 
 	if job.State != "" {
