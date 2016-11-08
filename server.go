@@ -16,6 +16,7 @@ type Server struct {
 	config    *Config
 	r         *mux.Router
 	j         map[string]Job
+	w         map[string]Worker
 }
 
 type Error struct {
@@ -27,12 +28,14 @@ func NewServer(config *Config) *Server {
 	s := &Server{
 		config: config,
 		j:      make(map[string]Job),
+		w:      make(map[string]Worker),
 	}
 	s.r = mux.NewRouter()
 	s.r.HandleFunc("/health/", s.HealthHandler)
 	s.r.HandleFunc("/ping/", s.JobNextHandler).Methods("GET")
-	s.r.HandleFunc("/job/", s.JobNewHandler).Methods("POST")
+	s.r.HandleFunc("/worker/", s.WorkerListHandler).Methods("GET")
 	s.r.HandleFunc("/job/", s.JobListHandler).Methods("GET")
+	s.r.HandleFunc("/job/", s.JobNewHandler).Methods("POST")
 	s.r.HandleFunc("/job/{id}/", s.JobInfoHandler).Methods("GET")
 	s.r.HandleFunc("/job/{id}/", s.JobUpdateHandler).Methods("PUT")
 	s.r.HandleFunc("/job/{id}/", s.JobDeleteHandler).Methods("DELETE")
@@ -62,8 +65,25 @@ func (s *Server) NextJob() *Job {
 	return nil
 }
 
+func (s *Server) WorkerListHandler(w http.ResponseWriter, r *http.Request) {
+	logrus.Info("Got job-list request")
+	encoder := json.NewEncoder(w)
+	encoder.Encode(s.w)
+}
+
+func (s *Server) UpdateWorkerInfo(r *http.Request) {
+	ip := getIP(r)
+	s.w[ip] = Worker{
+		IP:        ip,
+		State:     "active",
+		UserAget:  r.Header.Get("User-Agent"),
+		lastVisit: time.Now(),
+	}
+}
+
 func (s *Server) JobNextHandler(w http.ResponseWriter, r *http.Request) {
 	logrus.Info("Got job-next request")
+	s.UpdateWorkerInfo(r)
 	c := s.CountActiveJobs()
 	encoder := json.NewEncoder(w)
 	if c >= s.config.ParallelJobCount {
@@ -245,6 +265,22 @@ func (s *Server) InvalidateZombieJobs() {
 				}
 				job.State = "pending"
 				s.j[id] = job
+			}
+		}
+	}
+}
+
+func (s *Server) InvalidateZimbieWorkers() {
+	zombieTicker := time.NewTicker(5 * time.Minute)
+	for {
+		select {
+		case <-zombieTicker.C:
+			for id, worker := range s.w {
+				if !worker.IsZombie() {
+					continue
+				}
+				worker.State = "inactive"
+				s.w[id] = worker
 			}
 		}
 	}
