@@ -26,6 +26,10 @@ func main() {
 
 	s := NewServer(&config)
 
+	if err := s.Load(); err != nil {
+		logrus.Panic(err)
+	}
+
 	go s.Work()
 	go s.InvalidateZombieJobs()
 	go s.InvalidateZimbieWorkers()
@@ -34,8 +38,12 @@ func main() {
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 	for {
 		select {
-		case s := <-signalChan:
-			logrus.Info(fmt.Sprintf("Captured %v. Exiting...", s))
+		case sign := <-signalChan:
+			logrus.Info(fmt.Sprintf("Captured %v. Exiting...", sign))
+			if err := s.Shutdown(); err != nil {
+				logrus.Panic(err)
+			}
+			logrus.Info("Done")
 			os.Exit(0)
 		}
 	}

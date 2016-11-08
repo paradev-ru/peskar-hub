@@ -1,0 +1,51 @@
+#!/bin/sh
+set -e
+
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+
+BASE=peskar
+PESKAR=/opt/peskar/$BASE
+PESKAR_SSD_PIDFILE=/var/run/$BASE-ssd.pid
+PESKAR_LOGFILE=/var/log/$BASE.log
+
+. /lib/lsb/init-functions
+
+if [ -f /etc/default/$BASE ]; then
+    . /etc/default/$BASE
+fi
+
+case "$1" in
+    start)
+        touch "$PESKAR_LOGFILE"
+        log_begin_msg "Starting: $BASE"
+        start-stop-daemon --start \
+            --background \
+            --no-close \
+            --exec "$PESKAR" \
+            --pidfile "$PESKAR_SSD_PIDFILE" \
+            --make-pidfile \
+            >> "$PESKAR_LOGFILE" 2>&1
+        log_end_msg $?
+        ;;
+    stop)
+        log_begin_msg "Stopping: $BASE"
+        start-stop-daemon --stop \
+            --pidfile "$PESKAR_SSD_PIDFILE" \
+            --retry 10
+        log_end_msg $?
+        ;;
+    restart)
+        peskar_pid=`cat "$PESKAR_SSD_PIDFILE" 2>/dev/null`
+        [ -n "$peskar_pid" ] \
+            && ps -p $peskar_pid > /dev/null 2>&1 \
+            && $0 stop
+        $0 start
+        ;;
+    status)
+        status_of_proc -p "$PESKAR_SSD_PIDFILE" "$PESKAR" "$BASE"
+        ;;
+    *)
+        echo "Usage: service peskar {start|stop|restart|status}"
+        exit 1
+        ;;
+esac

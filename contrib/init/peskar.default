@@ -1,0 +1,2 @@
+export PESKAR_LISTEN_ADDR=127.0.0.1:8084
+export PESKAR_DATADIR=/opt/peskar/data

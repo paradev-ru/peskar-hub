@@ -17,6 +17,7 @@ type Server struct {
 	r         *mux.Router
 	j         map[string]Job
 	w         map[string]Worker
+	c         *Client
 }
 
 type Error struct {
@@ -29,10 +30,16 @@ type WithCORS struct {
 }
 
 func NewServer(config *Config) *Server {
+	backend, err := NewBackend(config.DataDir)
+	if err != nil {
+		logrus.Panic(err)
+	}
+
 	s := &Server{
 		config: config,
 		j:      make(map[string]Job),
 		w:      make(map[string]Worker),
+		c:      backend,
 	}
 	s.r = mux.NewRouter()
 	s.r.HandleFunc("/health/", s.HealthHandler)
@@ -317,4 +324,44 @@ func (s *Server) Work() {
 	s.startedAt = time.Now()
 	http.Handle("/", &WithCORS{s.r})
 	logrus.Fatal(http.ListenAndServe(s.config.ListenAddr, nil))
+}
+
+func (s *Server) Load() error {
+	if err := s.LoadData(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) Shutdown() error {
+	if err := s.SaveData(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) LoadData() error {
+	logrus.Info("Loading data...")
+	if err := s.c.Load("jobs", &s.j); err != nil {
+		return err
+	}
+	logrus.Debugf("Jobs loaded: %d", len(s.j))
+	if err := s.c.Load("workers", &s.j); err != nil {
+		return err
+	}
+	logrus.Debugf("Workers loaded: %d", len(s.w))
+	return nil
+}
+
+func (s *Server) SaveData() error {
+	logrus.Info("Saving data...")
+	if err := s.c.Save("jobs", s.j); err != nil {
+		return err
+	}
+	logrus.Debugf("Jobs saved: %d", len(s.j))
+	if err := s.c.Save("workers", s.w); err != nil {
+		return err
+	}
+	logrus.Debugf("Workers saved: %d", len(s.w))
+	return nil
 }
