@@ -269,7 +269,7 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		j.State = job.State
 	}
 
-	logrus.Infof("Job '%s' updated", job.ID)
+	logrus.Infof("Job '%s' updated", j.ID)
 	s.j[vars["id"]] = j
 
 	encoder.Encode(j)

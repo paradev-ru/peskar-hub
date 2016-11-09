@@ -26,15 +26,8 @@ func (j *Job) IsAvailable() bool {
 	return false
 }
 
-func (j *Job) IsCanceled() bool {
-	if j.State == "canceled" || j.State == "deleted" {
-		return true
-	}
-	return false
-}
-
 func (j *Job) IsDone() bool {
-	if j.State == "failed" || j.State == "finished" || j.IsCanceled() {
+	if j.State == "failed" || j.State == "finished" || j.State == "canceled" {
 		return true
 	}
 	return false
