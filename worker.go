@@ -14,7 +14,6 @@ func (w *Worker) IsZombie() bool {
 	if w.IsActive() && time.Since(w.lastVisit) > 5*time.Minute {
 		return true
 	}
-
 	return false
 }
 

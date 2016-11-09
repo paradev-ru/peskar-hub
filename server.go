@@ -40,11 +40,28 @@ func NewServer(config *Config) *Server {
 	s.r.HandleFunc("/worker/", s.WorkerListHandler).Methods("GET")
 	s.r.HandleFunc("/job/", s.JobListHandler).Methods("GET")
 	s.r.HandleFunc("/job/", s.JobNewHandler).Methods("POST")
-	s.r.HandleFunc("/job/{id}/", s.JobInfoHandler).Methods("GET")
-	s.r.HandleFunc("/job/{id}/", s.JobUpdateHandler).Methods("PUT")
-	s.r.HandleFunc("/job/{id}/", s.JobDeleteHandler).Methods("DELETE")
+	s.r.HandleFunc("/job/{id}/", s.ValidateJob(s.JobInfoHandler)).Methods("GET")
+	s.r.HandleFunc("/job/{id}/", s.ValidateJob(s.JobUpdateHandler)).Methods("PUT")
+	s.r.HandleFunc("/job/{id}/", s.ValidateJob(s.JobDeleteHandler)).Methods("DELETE")
 	s.r.NotFoundHandler = http.HandlerFunc(s.NotFoundHandler)
 	return s
+}
+
+func (s *Server) ValidateJob(fn http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		if _, ok := s.j[vars["id"]]; !ok {
+			w.WriteHeader(http.StatusNotFound)
+			logrus.Errorf("Job '%s' not found", vars["id"])
+			encoder := json.NewEncoder(w)
+			encoder.Encode(Error{
+				Code:    http.StatusNotFound,
+				Message: "Job not found",
+			})
+			return
+		}
+		fn(w, r)
+	}
 }
 
 func (s *Server) CountActiveJobs() int {
@@ -96,19 +113,19 @@ func (s *Server) JobNextHandler(w http.ResponseWriter, r *http.Request) {
 	c := s.CountActiveJobs()
 	encoder := json.NewEncoder(w)
 	if c >= s.config.ParallelJobCount {
+		w.WriteHeader(http.StatusConflict)
 		encoder.Encode(Error{
-			Code:    3,
+			Code:    http.StatusConflict,
 			Message: fmt.Sprintf("Only %d job(s) cant run parallel, current running %d job(s)", s.config.ParallelJobCount, c),
 		})
 		return
 	}
-
 	j := s.NextJob()
 	if j == nil {
+		w.WriteHeader(http.StatusNotFound)
 		encoder.Encode(Job{})
 		return
 	}
-
 	encoder.Encode(j)
 }
 
@@ -119,23 +136,24 @@ func (s *Server) JobNewHandler(w http.ResponseWriter, r *http.Request) {
 	encoder := json.NewEncoder(w)
 	if err := decoder.Decode(&job); err != nil {
 		logrus.Error(err)
+		w.WriteHeader(http.StatusBadRequest)
 		encoder.Encode(Error{
-			Code:    1,
+			Code:    http.StatusBadRequest,
 			Message: fmt.Sprintf("Error with decoding request body: %v", err),
 		})
 		return
 	}
-
 	j, err := s.AddJob(job)
 	if err != nil {
 		logrus.Error(err)
+		w.WriteHeader(http.StatusConflict)
 		encoder.Encode(Error{
-			Code:    2,
+			Code:    http.StatusConflict,
 			Message: fmt.Sprintf("Error with saving job: %v", err),
 		})
 		return
 	}
-
+	w.WriteHeader(http.StatusCreated)
 	logrus.Infof("Job '%s' created", j.ID)
 	encoder.Encode(j)
 }
@@ -150,13 +168,11 @@ func (s *Server) AddJob(job Job) (Job, error) {
 	if job.DownloadURL == "" {
 		return Job{}, errors.New("Download URL cant be empty")
 	}
-
 	for _, jb := range s.j {
 		if !jb.IsDone() && jb.DownloadURL == job.DownloadURL {
 			return Job{}, fmt.Errorf("Job for %s already exists", jb.DownloadURL)
 		}
 	}
-
 	jobID, err := RandomUuid()
 	if err != nil {
 		return Job{}, errors.New("Error generating job ID")
@@ -167,7 +183,6 @@ func (s *Server) AddJob(job Job) (Job, error) {
 	job.State = "pending"
 
 	s.j[job.ID] = job
-
 	return job, nil
 }
 
@@ -175,33 +190,21 @@ func (s *Server) JobInfoHandler(w http.ResponseWriter, r *http.Request) {
 	logrus.Debug("Got job-info request")
 	vars := mux.Vars(r)
 	encoder := json.NewEncoder(w)
-	if job, ok := s.j[vars["id"]]; ok {
-		encoder.Encode(job)
-		return
-	}
-
-	encoder.Encode(Error{
-		Code:    404,
-		Message: "Not found",
-	})
+	job := s.j[vars["id"]]
+	encoder.Encode(job)
 }
 
 func (s *Server) JobDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	logrus.Debug("Got job-delete request")
 	vars := mux.Vars(r)
 	encoder := json.NewEncoder(w)
-	if job, ok := s.j[vars["id"]]; ok {
-		logrus.Infof("Job '%s' deleted", job.ID)
-		job.State = "deleted"
-		s.j[vars["id"]] = job
-		encoder.Encode(job)
-		return
-	}
+	job := s.j[vars["id"]]
 
-	encoder.Encode(Error{
-		Code:    404,
-		Message: "Not found",
-	})
+	logrus.Infof("Job '%s' deleted", job.ID)
+	job.State = "deleted"
+
+	s.j[vars["id"]] = job
+	encoder.Encode(job)
 }
 
 func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
@@ -212,22 +215,15 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	var job Job
 	if err := decoder.Decode(&job); err != nil {
 		logrus.Error(err)
+		w.WriteHeader(http.StatusBadRequest)
 		encoder.Encode(Error{
-			Code:    1,
+			Code:    http.StatusBadRequest,
 			Message: fmt.Sprintf("Error with decoding request body: %v", err),
 		})
 		return
 	}
 
-	j, ok := s.j[vars["id"]]
-	if !ok {
-		logrus.Error("Job not found")
-		encoder.Encode(Error{
-			Code:    404,
-			Message: "Job not found",
-		})
-		return
-	}
+	j := s.j[vars["id"]]
 
 	if j.IsDone() {
 		encoder.Encode(j)
@@ -269,8 +265,9 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) NotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	logrus.Error("Page not found")
 	encoder := json.NewEncoder(w)
+	w.WriteHeader(http.StatusNotFound)
 	encoder.Encode(Error{
-		Code:    404,
+		Code:    http.StatusNotFound,
 		Message: "Page not found",
 	})
 }
