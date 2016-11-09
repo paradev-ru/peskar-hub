@@ -38,3 +38,5 @@ test:
 	@curl -X POST -d '{"download_url": "http://megatron.is-very-evil.org/HD/720p/Dont_Be_a_Menace_to_South_Central_While_Drinking_Your_Juice_in_the_Hood_BDRip_720p.mkv"}' http://api.peskar.paradev.ru/job/
 	@curl -X POST -d '{"download_url": "http://stormy.homeftp.net/HD/HDTV/Tin_Cup_HDTVRip_720p.mkv"}' http://api.peskar.paradev.ru/job/
 	@curl -X POST -d '{"download_url": "http://megatron.is-very-evil.org/HD/720p/Scream_BDRip_720p.mkv"}' http://api.peskar.paradev.ru/job/
+	@curl -X POST -d '{"download_url": "http://stormy.homeftp.net/HD/1080p/Neon_Demon_BDRip_1080p.mkv"}' http://api.peskar.paradev.ru/job/
+	@curl -X POST -d '{"download_url": "http://stormy.homeftp.net/HD/HDTV/Mechanic_Resurrection_WEB-DL_1080p.mkv"}' http://api.peskar.paradev.ru/job/
