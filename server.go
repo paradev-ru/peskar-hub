@@ -100,10 +100,10 @@ func (s *Server) WorkerListHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) UpdateWorkerInfo(r *http.Request) {
 	ip := getIP(r)
 	s.w[ip] = Worker{
-		IP:        ip,
-		State:     "active",
-		UserAget:  r.Header.Get("User-Agent"),
-		lastVisit: time.Now(),
+		IP:         ip,
+		State:      "active",
+		UserAget:   r.Header.Get("User-Agent"),
+		LastSeenAt: time.Now().UTC(),
 	}
 }
 
