@@ -258,7 +258,7 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if job.State != "" {
-		if j.State == "pending" && job.State == "working" {
+		if j.State == "requested" && job.State == "working" {
 			j.StartedAt = time.Now().UTC()
 		}
 
