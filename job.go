@@ -18,6 +18,13 @@ type Job struct {
 	requestedAt time.Time `json:"-"`
 }
 
+func (j *Job) IsAvailable() bool {
+	if j.State == "pending" {
+		return true
+	}
+	return false
+}
+
 func (j *Job) IsCanceled() bool {
 	if j.State == "canceled" || j.State == "deleted" {
 		return true
@@ -33,7 +40,7 @@ func (j *Job) IsDone() bool {
 }
 
 func (j *Job) IsActive() bool {
-	if j.State == "working" || j.State == "requested" || (j.State != "pending" && !j.IsDone()) {
+	if j.State == "working" || j.State == "requested" || (!j.IsAvailable() && !j.IsDone()) {
 		return true
 	}
 	return false

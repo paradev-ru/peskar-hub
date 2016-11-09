@@ -11,9 +11,16 @@ type Worker struct {
 }
 
 func (w *Worker) IsZombie() bool {
-	if w.State == "active" && time.Since(w.lastVisit) > 5*time.Minute {
+	if w.IsActive() && time.Since(w.lastVisit) > 5*time.Minute {
 		return true
 	}
 
+	return false
+}
+
+func (w *Worker) IsActive() bool {
+	if w.State == "active" {
+		return true
+	}
 	return false
 }
