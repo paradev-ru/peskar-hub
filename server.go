@@ -234,11 +234,6 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	j := s.j[vars["id"]]
 
-	if j.IsDone() {
-		encoder.Encode(j)
-		return
-	}
-
 	j.updatedAt = time.Now()
 
 	if job.Log != "" {
@@ -258,7 +253,7 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if job.State != "" {
-		if j.IsAvailable() || job.State == "requested" {
+		if job.State == "requested" {
 			logrus.Error("Cant change state from '%s' to '%s'", j.State, job.State)
 			w.WriteHeader(http.StatusBadRequest)
 			encoder.Encode(Error{
