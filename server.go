@@ -170,7 +170,7 @@ func (s *Server) AddJob(job Job) (Job, error) {
 	}
 	for _, jb := range s.j {
 		if !jb.IsDone() && jb.DownloadURL == job.DownloadURL {
-			return Job{}, fmt.Errorf("Job for %s already exists", jb.DownloadURL)
+			return Job{}, fmt.Errorf("Job for '%s' already exists", jb.DownloadURL)
 		}
 	}
 	jobID, err := RandomUuid()
@@ -198,13 +198,22 @@ func (s *Server) JobDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	logrus.Debug("Got job-delete request")
 	vars := mux.Vars(r)
 	encoder := json.NewEncoder(w)
+
 	job := s.j[vars["id"]]
 
-	logrus.Infof("Job '%s' deleted", job.ID)
-	job.State = "deleted"
+	if !job.IsAvailable() && !job.IsDone() {
+		logrus.Errorf("Cant delete active job '%s'", job.ID)
+		w.WriteHeader(http.StatusForbidden)
+		encoder.Encode(Error{
+			Code:    http.StatusForbidden,
+			Message: "Cant delete active job",
+		})
+		return
+	}
 
-	s.j[vars["id"]] = job
-	encoder.Encode(job)
+	logrus.Infof("Job '%s' deleted", job.ID)
+	delete(s.j, job.ID)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
