@@ -30,7 +30,6 @@ logs:
 test:
 	@curl -X POST -d '{"download_url": "http://tps91.homeftp.net/Martian_Extended.avi"}' http://api.peskar.paradev.ru/job/
 	@curl -X POST -d '{"download_url": "http://stormy.homeftp.net/Interstellar_IMAX_Edition.avi"}' http://api.peskar.paradev.ru/job/
-	@curl -X POST -d '{"download_url": "http://stormy.homeftp.net/Daap_hyut_cam_mui.avi"}' http://api.peskar.paradev.ru/job/
 	@curl -X POST -d '{"download_url": "http://stormy.homeftp.net/HD/720p/Fargo_BDRip_720p.mkv"}' http://api.peskar.paradev.ru/job/
 	@curl -X POST -d '{"download_url": "http://megatron.is-very-evil.org/HD/720p/Rock_BDRip_720p.mkv"}' http://api.peskar.paradev.ru/job/
 	@curl -X POST -d '{"download_url": "http://stormy.homeftp.net/HD/720p/Mission_Impossible_BDRip_720p.mkv"}' http://api.peskar.paradev.ru/job/
