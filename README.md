@@ -73,6 +73,8 @@ API может возвращать различные ошибки в след�
         "state": "pending",
         "download_url": "http://stormy.homeftp.net/HD/720p/Fargo_BDRip_720p.mkv",
         "name": "Fargo (720p)",
+        "description": "20th Anniversary",
+        "info_url": "http://weburg.net/movies/info/1795",
         "added_at": "2016-11-08T19:36:41.464841575Z",
         "started_at": "0001-01-01T00:00:00Z",
         "finished_at": "0001-01-01T00:00:00Z"
@@ -104,7 +106,7 @@ download_url | Ссылка на файл загрузки
     "download_url": "http://stormy.homeftp.net/HD/720p/Fargo_BDRip_720p.mkv",
     "name": "Fargo (720p)",
     "description": "20th Anniversary",
-    "info_rul": "http://weburg.net/movies/info/1795",
+    "info_url": "http://weburg.net/movies/info/1795",
     "added_at": "2016-11-08T19:36:41.464841575Z",
     "started_at": "0001-01-01T00:00:00Z",
     "finished_at": "0001-01-01T00:00:00Z"
