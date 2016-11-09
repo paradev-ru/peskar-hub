@@ -9,6 +9,7 @@ type Job struct {
 	InfoURL     string `json:"info_url,omitempty"`
 	Name        string `json:"name,omitempty"`
 	Log         string `json:"log,omitempty"`
+	Description string `json:"description,omitempty"`
 
 	AddedAt    time.Time `json:"added_at,omitempty"`
 	StartedAt  time.Time `json:"started_at,omitempty"`
