@@ -258,6 +258,16 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if job.State != "" {
+		if j.IsAvailable() || job.State == "requested" {
+			logrus.Error("Cant change state from '%s' to '%s'", j.State, job.State)
+			w.WriteHeader(http.StatusBadRequest)
+			encoder.Encode(Error{
+				Code:    http.StatusBadRequest,
+				Message: fmt.Sprintf("Cant change state from '%s' to '%s'", j.State, job.State),
+			})
+			return
+		}
+
 		if j.State == "requested" && job.State == "working" {
 			j.StartedAt = time.Now().UTC()
 		}
