@@ -26,6 +26,12 @@ type Error struct {
 	Message string `json:"message,omitempty"`
 }
 
+type HttpStatus struct {
+	StatusCode    int    `json:"status_code"`
+	Status        string `json:"status"`
+	ContentLength int64  `json:"content_length"`
+}
+
 func NewServer(config *Config) *Server {
 	client := NewBackend(config.DataDir)
 	s := &Server{
@@ -35,6 +41,7 @@ func NewServer(config *Config) *Server {
 		c:      client,
 	}
 	s.r = mux.NewRouter()
+	s.r.HandleFunc("/http_status/", s.HttpStatusHandler).Methods("GET")
 	s.r.HandleFunc("/version/", s.VersionHandler).Methods("GET")
 	s.r.HandleFunc("/health/", s.HealthHandler).Methods("GET")
 	s.r.HandleFunc("/ping/", s.JobNextHandler).Methods("GET")
@@ -85,6 +92,36 @@ func (s *Server) NextJob() *Job {
 		}
 	}
 	return nil
+}
+
+func (s *Server) HttpStatusHandler(w http.ResponseWriter, r *http.Request) {
+	link := r.URL.Query().Get("url")
+	encoder := json.NewEncoder(w)
+	if link == "" {
+		logrus.Error("Empty url parameter")
+		w.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(Error{
+			Code:    http.StatusBadRequest,
+			Message: "Empty url parameter",
+		})
+		return
+	}
+	resp, err := http.Head(link)
+	if err != nil {
+		logrus.Errorf("HTTP request error: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(Error{
+			Code:    http.StatusBadRequest,
+			Message: fmt.Sprintf("HTTP request error: %v", err),
+		})
+		return
+	}
+	h := HttpStatus{
+		StatusCode:    resp.StatusCode,
+		Status:        resp.Status,
+		ContentLength: resp.ContentLength,
+	}
+	encoder.Encode(h)
 }
 
 func (s *Server) VersionHandler(w http.ResponseWriter, r *http.Request) {
