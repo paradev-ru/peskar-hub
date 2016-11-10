@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -237,7 +238,7 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	j.updatedAt = time.Now()
 
 	if job.Log != "" {
-		j.Log += job.Log
+		j.Log += strings.TrimSpace(job.Log) + "\n"
 	}
 
 	if job.InfoURL != "" {
