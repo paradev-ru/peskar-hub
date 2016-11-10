@@ -217,7 +217,7 @@ func (s *Server) JobDeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	logrus.Info("Got job-update request")
+	logrus.Debug("Got job-update request")
 	vars := mux.Vars(r)
 	decoder := json.NewDecoder(r.Body)
 	encoder := json.NewEncoder(w)
