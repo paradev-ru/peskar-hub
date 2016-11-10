@@ -15,8 +15,37 @@ type Job struct {
 	StartedAt  time.Time `json:"started_at,omitempty"`
 	FinishedAt time.Time `json:"finished_at,omitempty"`
 
+	StateHistory []StateHistoryItem `json:"state_history,omitempty"`
+
 	updatedAt   time.Time `json:"-"`
 	requestedAt time.Time `json:"-"`
+}
+
+type StateHistoryItem struct {
+	ChangedAt time.Time `json:"changed_at"`
+	Initiator string    `json:"initiator"`
+	FromState string    `json:"from_state"`
+	ToState   string    `json:"to_state"`
+}
+
+func (j *Job) SetState(state, initiator string) error {
+	h := StateHistoryItem{
+		ChangedAt: time.Now().UTC(),
+		Initiator: initiator,
+		FromState: j.State,
+		ToState:   state,
+	}
+	j.State = state
+	j.StateHistory = append(j.StateHistory, h)
+	return nil
+}
+
+func (j *Job) SetStateUser(state string) error {
+	return j.SetState(state, "user")
+}
+
+func (j *Job) SetStateSystem(state string) error {
+	return j.SetState(state, "system")
 }
 
 func (j *Job) IsAvailable() bool {

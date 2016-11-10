@@ -77,7 +77,7 @@ func (s *Server) CountActiveJobs() int {
 func (s *Server) NextJob() *Job {
 	for id, job := range s.j {
 		if job.IsAvailable() {
-			job.State = "requested"
+			job.SetStateSystem("requested")
 			job.requestedAt = time.Now()
 			s.j[id] = job
 			return &job
@@ -180,7 +180,7 @@ func (s *Server) AddJob(job Job) (Job, error) {
 
 	job.ID = jobID
 	job.AddedAt = time.Now().UTC()
-	job.State = "pending"
+	job.SetStateSystem("pending")
 
 	s.j[job.ID] = job
 	return job, nil
@@ -252,7 +252,7 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		j.Description = job.Description
 	}
 
-	if job.State != "" {
+	if job.State != "" && job.State != j.State {
 		if job.State == "requested" {
 			logrus.Error("Cant change state from '%s' to '%s'", j.State, job.State)
 			w.WriteHeader(http.StatusBadRequest)
@@ -276,7 +276,7 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 			j.FinishedAt = time.Now().UTC()
 		}
 
-		j.State = job.State
+		j.SetStateUser(job.State)
 	}
 
 	logrus.Infof("Job '%s' updated", j.ID)
@@ -312,7 +312,7 @@ func (s *Server) InvalidateZombieJobs() {
 					continue
 				}
 				logrus.Debugf("Switch state to 'pending' for job '%s'", job.ID)
-				job.State = "pending"
+				job.SetStateSystem("pending")
 				s.j[id] = job
 			}
 		}
