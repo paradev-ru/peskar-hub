@@ -51,6 +51,8 @@ func NewServer(config *Config) *Server {
 	s.r.HandleFunc("/job/{id}/", s.ValidateJob(s.JobInfoHandler)).Methods("GET")
 	s.r.HandleFunc("/job/{id}/", s.ValidateJob(s.JobUpdateHandler)).Methods("PUT")
 	s.r.HandleFunc("/job/{id}/", s.ValidateJob(s.JobDeleteHandler)).Methods("DELETE")
+	s.r.HandleFunc("/job/{id}/log/", s.ValidateJob(s.LogHandler)).Methods("GET", "DELETE")
+	s.r.HandleFunc("/job/{id}/state_history/", s.ValidateJob(s.StateHistoryHandler)).Methods("GET", "DELETE")
 	s.r.NotFoundHandler = http.HandlerFunc(s.NotFoundHandler)
 	return s
 }
@@ -92,6 +94,42 @@ func (s *Server) NextJob() *Job {
 		}
 	}
 	return nil
+}
+
+func (s *Server) LogHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	job := s.j[vars["id"]]
+	encoder := json.NewEncoder(w)
+
+	switch r.Method {
+	case "DELETE":
+		logrus.Debug("Got log-delete request")
+		job.Log = ""
+		s.j[vars["id"]] = job
+		w.WriteHeader(http.StatusOK)
+		return
+	default:
+	case "GET":
+		encoder.Encode(job.Log)
+	}
+}
+
+func (s *Server) StateHistoryHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	job := s.j[vars["id"]]
+	encoder := json.NewEncoder(w)
+
+	switch r.Method {
+	case "DELETE":
+		logrus.Debug("Got state_history-delete request")
+		job.StateHistory = nil
+		s.j[vars["id"]] = job
+		w.WriteHeader(http.StatusOK)
+		return
+	default:
+	case "GET":
+		encoder.Encode(job.StateHistory)
+	}
 }
 
 func (s *Server) HttpStatusHandler(w http.ResponseWriter, r *http.Request) {
