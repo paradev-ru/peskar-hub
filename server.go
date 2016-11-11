@@ -105,6 +105,7 @@ func (s *Server) LogHandler(w http.ResponseWriter, r *http.Request) {
 	case "DELETE":
 		logrus.Debug("Got log-delete request")
 		job.Log = ""
+		job.updatedAt = time.Now().UTC()
 		s.j[vars["id"]] = job
 		w.WriteHeader(http.StatusOK)
 		return
@@ -123,6 +124,7 @@ func (s *Server) StateHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	case "DELETE":
 		logrus.Debug("Got state_history-delete request")
 		job.StateHistory = nil
+		job.updatedAt = time.Now().UTC()
 		s.j[vars["id"]] = job
 		w.WriteHeader(http.StatusOK)
 		return
