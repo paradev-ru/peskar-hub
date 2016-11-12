@@ -73,14 +73,13 @@ func initConfig() error {
 }
 
 func processEnv() {
-	listenAddr := os.Getenv("PESKAR_LISTEN_ADDR")
-	if len(listenAddr) > 0 {
-		config.ListenAddr = listenAddr
+	listenAddrEnv := os.Getenv("PESKAR_LISTEN_ADDR")
+	if len(listenAddrEnv) > 0 {
+		config.ListenAddr = listenAddrEnv
 	}
-
-	dataDir := os.Getenv("PESKAR_DATADIR")
-	if len(dataDir) > 0 {
-		config.DataDir = dataDir
+	dataDirEnv := os.Getenv("PESKAR_DATADIR")
+	if len(dataDirEnv) > 0 {
+		config.DataDir = dataDirEnv
 	}
 }
 
