@@ -10,6 +10,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"github.com/leominov/pechkin/lib"
 )
 
 type Server struct {
@@ -19,6 +20,7 @@ type Server struct {
 	j         map[string]Job
 	w         map[string]Worker
 	c         *Client
+	redis     *lib.RedisStore
 }
 
 type Error struct {
@@ -34,11 +36,13 @@ type HttpStatus struct {
 
 func NewServer(config *Config) *Server {
 	client := NewBackend(config.DataDir)
+	redis := lib.NewRedis(config.RedisMaxIdle, config.RedisIdleTimeout, config.RedisAddr)
 	s := &Server{
 		config: config,
 		j:      make(map[string]Job),
 		w:      make(map[string]Worker),
 		c:      client,
+		redis:  redis,
 	}
 	s.r = mux.NewRouter()
 	s.r.HandleFunc("/http_status/", s.HttpStatusHandler).Methods("GET")
@@ -355,8 +359,8 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		j.SetStateUser(job.State)
+		s.redis.Send("jobs", j)
 	}
-
 	logrus.Infof("Job '%s' updated", j.ID)
 	s.j[vars["id"]] = j
 

@@ -26,6 +26,11 @@ func main() {
 
 	s := NewServer(&config)
 
+	if err := s.redis.Check(); err != nil {
+		logrus.Error(err)
+		os.Exit(1)
+	}
+
 	if err := s.Load(); err != nil {
 		logrus.Error(err)
 	}
