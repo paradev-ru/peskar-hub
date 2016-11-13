@@ -14,13 +14,19 @@ import (
 )
 
 type Server struct {
-	startedAt time.Time
-	config    *Config
-	r         *mux.Router
-	j         map[string]Job
-	w         map[string]Worker
-	c         *Client
-	redis     *lib.RedisStore
+	startedAt  time.Time
+	config     *Config
+	r          *mux.Router
+	j          map[string]Job
+	w          map[string]Worker
+	c          *Client
+	redis      *lib.RedisStore
+	indexerSub *lib.Subscribe
+}
+
+type IndexLog struct {
+	JobID   string `json:"job_id"`
+	Message string `json:"message,omitempty"`
 }
 
 type Error struct {
@@ -60,6 +66,33 @@ func NewServer(config *Config) *Server {
 	s.r.HandleFunc("/job/{id}/state_history/", s.ValidateJob(s.StateHistoryHandler)).Methods("GET", "DELETE")
 	s.r.NotFoundHandler = http.HandlerFunc(s.NotFoundHandler)
 	return s
+}
+
+func (s *Server) Subscribe() error {
+	if err := s.redis.Check(); err != nil {
+		return err
+	}
+	s.indexerSub = s.redis.NewSubscribe("index")
+	s.indexerSub.SuccessReceivedCallback = s.IndexSuccessReceived
+	return s.indexerSub.Run()
+}
+
+func (s *Server) IndexSuccessReceived(result []byte) error {
+	var indexLog IndexLog
+	var job Job
+	if err := json.Unmarshal(result, &indexLog); err != nil {
+		return fmt.Errorf("Unmarshal error: %v (%s)", err, string(result))
+	}
+	if _, ok := s.j[indexLog.JobID]; !ok {
+		return fmt.Errorf("Job id '%s' not found", indexLog.JobID)
+	}
+	job = s.j[indexLog.JobID]
+	if indexLog.Message != "" {
+		job.Log += fmt.Sprintf("%s index: %s\n", time.Now().String(), strings.TrimSpace(indexLog.Message))
+		s.j[indexLog.JobID] = job
+		return nil
+	}
+	return fmt.Errorf("Empty message for job '%s'", indexLog.JobID)
 }
 
 func (s *Server) ValidateJob(fn http.HandlerFunc) http.HandlerFunc {

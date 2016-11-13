@@ -35,6 +35,7 @@ func main() {
 		logrus.Error(err)
 	}
 
+	go s.Subscribe()
 	go s.Work()
 
 	signalChan := make(chan os.Signal, 1)
