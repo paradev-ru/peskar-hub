@@ -10,7 +10,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"github.com/leominov/pechkin/lib"
+	"github.com/leominov/peskar-hub/lib"
 )
 
 type Server struct {
@@ -45,6 +45,7 @@ func NewServer(config *Config) *Server {
 		redis:  redis,
 	}
 	s.r = mux.NewRouter()
+	s.r.HandleFunc("/work_time/", s.WorkTimeHandler).Methods("GET")
 	s.r.HandleFunc("/http_status/", s.HttpStatusHandler).Methods("GET")
 	s.r.HandleFunc("/version/", s.VersionHandler).Methods("GET")
 	s.r.HandleFunc("/health/", s.HealthHandler).Methods("GET")
@@ -98,6 +99,23 @@ func (s *Server) NextJob() *Job {
 		}
 	}
 	return nil
+}
+
+func (s *Server) WorkTimeHandler(w http.ResponseWriter, r *http.Request) {
+	var wt bool
+	wt = true
+	if s.config.DndEnable {
+		wt = lib.IsAvailable(time.Now(), s.config.DndStartsAt, s.config.DndEndsAt)
+	}
+	encoder := json.NewEncoder(w)
+	encoder.Encode(map[string]interface{}{
+		"local_time":     time.Now(),
+		"local_time_utc": time.Now().UTC(),
+		"dnd_starts_at":  s.config.DndStartsAt,
+		"dnd_ends_at":    s.config.DndEndsAt,
+		"is_work_time":   wt,
+		"dnd_enable":     s.config.DndEnable,
+	})
 }
 
 func (s *Server) LogHandler(w http.ResponseWriter, r *http.Request) {

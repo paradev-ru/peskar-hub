@@ -1,7 +1,7 @@
 .PHONY: all linux deploy
 
 run:
-	@go run *.go --datadir=./data/ --log-level=debug
+	@go run *.go --datadir=./data/ --log-level=debug --dnd-enable=1 --dnd-start=1 --dnd-end=12
 
 all:
 	@mkdir -p bin/

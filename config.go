@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -16,6 +17,8 @@ const (
 	DefaultRedisAddr        = "redis://localhost:6379/0"
 	DefaultRedisIdleTimeout = 240 * time.Second
 	DefaultRedisMaxIdle     = 3
+	DefaultDndStartsAt      = 7
+	DefaultDndEndsAt        = 18
 )
 
 var (
@@ -28,6 +31,9 @@ var (
 	redisAddr        string
 	redisIdleTimeout time.Duration
 	redisMaxIdle     int
+	dndEnable        bool
+	dndStartsAt      int
+	dndEndsAt        int
 )
 
 type Config struct {
@@ -38,6 +44,9 @@ type Config struct {
 	RedisAddr        string
 	RedisIdleTimeout time.Duration
 	RedisMaxIdle     int
+	DndEnable        bool
+	DndStartsAt      int
+	DndEndsAt        int
 }
 
 func init() {
@@ -46,9 +55,12 @@ func init() {
 	flag.StringVar(&listenAddr, "listen-addr", "", "listen address")
 	flag.StringVar(&logLevel, "log-level", "", "level which confd should log messages")
 	flag.BoolVar(&printVersion, "version", false, "print version and exit")
-	flag.StringVar(&redisAddr, "redis", "", "Redis server URL")
+	flag.StringVar(&redisAddr, "redis-addr", "", "Redis server URL")
 	flag.DurationVar(&redisIdleTimeout, "redis-idle-timeout", 0*time.Second, "close Redis connections after remaining idle for this duration")
 	flag.IntVar(&redisMaxIdle, "redis-max-idle", 0, "Maximum number of idle connections in the Redis pool")
+	flag.BoolVar(&dndEnable, "dnd-enable", false, "enable dnd mode")
+	flag.IntVar(&dndStartsAt, "dnd-start", 0, "dnd mode start hour")
+	flag.IntVar(&dndEndsAt, "dnd-end", 0, "dnd mode end hour")
 }
 
 func initConfig() error {
@@ -59,6 +71,8 @@ func initConfig() error {
 		RedisAddr:        DefaultRedisAddr,
 		RedisIdleTimeout: DefaultRedisIdleTimeout,
 		RedisMaxIdle:     DefaultRedisMaxIdle,
+		DndStartsAt:      DefaultDndStartsAt,
+		DndEndsAt:        DefaultDndEndsAt,
 	}
 
 	processEnv()
@@ -74,7 +88,7 @@ func initConfig() error {
 	}
 
 	if config.RedisAddr == "" {
-		return errors.New("Must specify Redis server URL using -redis")
+		return errors.New("Must specify Redis server URL using -redis-addr")
 	}
 
 	if config.RedisIdleTimeout == 0*time.Second {
@@ -113,6 +127,17 @@ func processEnv() {
 	if len(dataDirEnv) > 0 {
 		config.DataDir = dataDirEnv
 	}
+	if len(os.Getenv("PESKAR_DND_MODE")) > 0 {
+		config.DndEnable = true
+	}
+	dndStartsAtEnv := os.Getenv("PESKAR_DND_START")
+	if i, err := strconv.Atoi(dndStartsAtEnv); err != nil {
+		config.DndStartsAt = i
+	}
+	dndEndsAtEnv := os.Getenv("PESKAR_DND_END")
+	if i, err := strconv.Atoi(dndEndsAtEnv); err != nil {
+		config.DndEndsAt = i
+	}
 }
 
 func processFlags() {
@@ -135,5 +160,11 @@ func setConfigFromFlag(f *flag.Flag) {
 		config.RedisMaxIdle = redisMaxIdle
 	case "log-level":
 		config.LogLevel = logLevel
+	case "dnd-enable":
+		config.DndEnable = dndEnable
+	case "dnd-start":
+		config.DndStartsAt = dndStartsAt
+	case "dnd-end":
+		config.DndEndsAt = dndEndsAt
 	}
 }
