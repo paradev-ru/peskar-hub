@@ -152,7 +152,7 @@ func setConfigFromFlag(f *flag.Flag) {
 		config.ParallelJobCount = parallelJobCount
 	case "listen-addr":
 		config.ListenAddr = listenAddr
-	case "redis":
+	case "redis-addr":
 		config.RedisAddr = redisAddr
 	case "redis-idle-timeout":
 		config.RedisIdleTimeout = redisIdleTimeout
