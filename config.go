@@ -131,11 +131,11 @@ func processEnv() {
 		config.DndEnable = true
 	}
 	dndStartsAtEnv := os.Getenv("PESKAR_DND_START")
-	if i, err := strconv.Atoi(dndStartsAtEnv); err != nil {
+	if i, err := strconv.Atoi(dndStartsAtEnv); err == nil {
 		config.DndStartsAt = i
 	}
 	dndEndsAtEnv := os.Getenv("PESKAR_DND_END")
-	if i, err := strconv.Atoi(dndEndsAtEnv); err != nil {
+	if i, err := strconv.Atoi(dndEndsAtEnv); err == nil {
 		config.DndEndsAt = i
 	}
 }
