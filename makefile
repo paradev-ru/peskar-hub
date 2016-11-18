@@ -13,8 +13,8 @@ linux:
 
 deploy: linux
 	@echo "--> Uploading..."
-	scp -P 3389 contrib/init/peskar.default leo@paradev.ru:/etc/default/peskar
-	scp -P 3389 contrib/init/peskar leo@paradev.ru:/etc/init.d/peskar
+	scp -P 3389 contrib/init/sysvinit-debian/peskar.default leo@paradev.ru:/etc/default/peskar
+	scp -P 3389 contrib/init/sysvinit-debian/peskar leo@paradev.ru:/etc/init.d/peskar
 	scp -P 3389 bin/peskar-hub leo@paradev.ru:/opt/peskar/peskar_new
 	@echo "--> Restarting..."
 	ssh -p 3389 leo@paradev.ru service peskar stop
