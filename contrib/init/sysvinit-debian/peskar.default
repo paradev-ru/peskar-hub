@@ -3,4 +3,4 @@ export PESKAR_DATADIR=/opt/peskar/data
 export PESKAR_REDIS_ADDR=redis://localhost:6379/0
 export PESKAR_DND_MODE=1
 export PESKAR_DND_START=10
-export PESKAR_DND_END=23
+export PESKAR_DND_END=20
