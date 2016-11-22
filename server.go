@@ -11,6 +11,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/leominov/peskar-hub/lib"
+	"github.com/leominov/peskar-hub/weburg"
 )
 
 type Server struct {
@@ -22,6 +23,7 @@ type Server struct {
 	c          *Client
 	redis      *lib.RedisStore
 	indexerSub *lib.Subscribe
+	weburgMS   *weburg.MovieService
 }
 
 type IndexLog struct {
@@ -41,6 +43,7 @@ type HttpStatus struct {
 }
 
 func NewServer(config *Config) *Server {
+	weburgCli := weburg.NewClient(http.DefaultClient)
 	client := NewBackend(config.DataDir)
 	redis := lib.NewRedis(config.RedisMaxIdle, config.RedisIdleTimeout, config.RedisAddr)
 	s := &Server{
@@ -49,12 +52,16 @@ func NewServer(config *Config) *Server {
 		w:      make(map[string]Worker),
 		c:      client,
 		redis:  redis,
+		weburgMS: &weburg.MovieService{
+			Client: weburgCli,
+		},
 	}
 	s.r = mux.NewRouter()
 	s.r.NotFoundHandler = http.HandlerFunc(s.NotFoundHandler)
 	v1 := s.r.PathPrefix("/v1").Subrouter()
 	v1.HandleFunc("/work_time/", s.WorkTimeHandler).Methods("GET")
 	v1.HandleFunc("/http_status/", s.HttpStatusHandler).Methods("GET")
+	v1.HandleFunc("/weburg_movie_info/", s.WeburgMovieInfoHandler).Methods("GET")
 	v1.HandleFunc("/version/", s.VersionHandler).Methods("GET")
 	v1.HandleFunc("/health/", s.HealthHandler).Methods("GET")
 	v1.HandleFunc("/ping/", s.JobNextHandler).Methods("GET")
@@ -188,6 +195,31 @@ func (s *Server) StateHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		encoder.Encode(job.StateHistory)
 	}
+}
+
+func (s *Server) WeburgMovieInfoHandler(w http.ResponseWriter, r *http.Request) {
+	link := r.URL.Query().Get("url")
+	encoder := json.NewEncoder(w)
+	if link == "" {
+		logrus.Error("Empty url parameter")
+		w.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(Error{
+			Code:    http.StatusBadRequest,
+			Message: "Empty url parameter",
+		})
+		return
+	}
+	res, err := s.weburgMS.Info(link)
+	if err != nil {
+		logrus.Errorf("Error with getting info from Weburg: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(Error{
+			Code:    http.StatusBadRequest,
+			Message: fmt.Sprintf("Error with getting info from Weburg: %v", err),
+		})
+		return
+	}
+	encoder.Encode(res)
 }
 
 func (s *Server) HttpStatusHandler(w http.ResponseWriter, r *http.Request) {
