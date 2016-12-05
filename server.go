@@ -258,9 +258,13 @@ func (s *Server) VersionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) WorkerListHandler(w http.ResponseWriter, r *http.Request) {
-	logrus.Debug("Got job-list request")
+	logrus.Debug("Got worker-list request")
 	encoder := json.NewEncoder(w)
-	encoder.Encode(s.w)
+	workerList := []Worker{}
+	for _, worker := range s.w {
+		workerList = append(workerList, worker)
+	}
+	encoder.Encode(workerList)
 }
 
 func (s *Server) UpdateWorkerInfo(r *http.Request) {
@@ -327,7 +331,11 @@ func (s *Server) JobNewHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) JobListHandler(w http.ResponseWriter, r *http.Request) {
 	logrus.Debug("Got job-list request")
 	encoder := json.NewEncoder(w)
-	encoder.Encode(s.j)
+	jobList := []Job{}
+	for _, job := range s.j {
+		jobList = append(jobList, job)
+	}
+	encoder.Encode(jobList)
 }
 
 func (s *Server) AddJob(job Job) (Job, error) {
