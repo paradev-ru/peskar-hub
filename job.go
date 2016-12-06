@@ -8,17 +8,21 @@ type Job struct {
 	DownloadURL string `json:"download_url,omitempty"`
 	InfoURL     string `json:"info_url,omitempty"`
 	Name        string `json:"name,omitempty"`
-	Log         string `json:"log,omitempty"`
 	Description string `json:"description,omitempty"`
 
 	AddedAt    time.Time `json:"added_at,omitempty"`
 	StartedAt  time.Time `json:"started_at,omitempty"`
 	FinishedAt time.Time `json:"finished_at,omitempty"`
 
-	StateHistory []StateHistoryItem `json:"state_history,omitempty"`
+	stateHistory []StateHistoryItem `json:"-"`
+	log          []LogItem          `json:"-"`
+	updatedAt    time.Time          `json:"-"`
+	requestedAt  time.Time          `json:"-"`
+}
 
-	updatedAt   time.Time `json:"-"`
-	requestedAt time.Time `json:"-"`
+type LogItem struct {
+	AddedAt time.Time `json:"added_at"`
+	Message string    `json:"message"`
 }
 
 type StateHistoryItem struct {
@@ -36,7 +40,7 @@ func (j *Job) SetState(state, initiator string) error {
 		ToState:   state,
 	}
 	j.State = state
-	j.StateHistory = append(j.StateHistory, h)
+	j.stateHistory = append(j.stateHistory, h)
 	return nil
 }
 
@@ -75,4 +79,24 @@ func (j *Job) IsZombie() bool {
 	}
 
 	return false
+}
+
+func (j *Job) Log(message string) {
+	l := LogItem{
+		AddedAt: time.Now().UTC(),
+		Message: message,
+	}
+	j.log = append(j.log, l)
+}
+
+func (j *Job) Updated() {
+	j.updatedAt = time.Now().UTC()
+}
+
+func (j *Job) DeleteLog() {
+	j.log = []LogItem{}
+}
+
+func (j *Job) DeleteStateHistory() {
+	j.stateHistory = []StateHistoryItem{}
 }

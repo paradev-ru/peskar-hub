@@ -26,8 +26,12 @@ type Server struct {
 	weburgMS   *weburg.MovieService
 }
 
-type IndexLog struct {
+type IncommingBusLog struct {
 	JobID   string `json:"job_id"`
+	Message string `json:"message,omitempty"`
+}
+
+type IncommingAPILog struct {
 	Message string `json:"message,omitempty"`
 }
 
@@ -72,6 +76,7 @@ func NewServer(config *Config) *Server {
 	v1.HandleFunc("/job/{id}/", s.ValidateJob(s.JobUpdateHandler)).Methods("PUT")
 	v1.HandleFunc("/job/{id}/", s.ValidateJob(s.JobDeleteHandler)).Methods("DELETE")
 	v1.HandleFunc("/job/{id}/log/", s.ValidateJob(s.LogHandler)).Methods("GET", "DELETE")
+	v1.HandleFunc("/job/{id}/log/", s.ValidateJob(s.LogNewHandler)).Methods("POST")
 	v1.HandleFunc("/job/{id}/state_history/", s.ValidateJob(s.StateHistoryHandler)).Methods("GET", "DELETE")
 	return s
 }
@@ -86,21 +91,21 @@ func (s *Server) Subscribe() error {
 }
 
 func (s *Server) IndexSuccessReceived(result []byte) error {
-	var indexLog IndexLog
+	var incommingLog IncommingBusLog
 	var job Job
-	if err := json.Unmarshal(result, &indexLog); err != nil {
+	if err := json.Unmarshal(result, &incommingLog); err != nil {
 		return fmt.Errorf("Unmarshal error: %v (%s)", err, string(result))
 	}
-	if _, ok := s.j[indexLog.JobID]; !ok {
-		return fmt.Errorf("Job id '%s' not found", indexLog.JobID)
+	if _, ok := s.j[incommingLog.JobID]; !ok {
+		return fmt.Errorf("Job id '%s' not found", incommingLog.JobID)
 	}
-	job = s.j[indexLog.JobID]
-	if indexLog.Message != "" {
-		job.Log += fmt.Sprintf("%s index: %s\n", time.Now().String(), strings.TrimSpace(indexLog.Message))
-		s.j[indexLog.JobID] = job
+	job = s.j[incommingLog.JobID]
+	if incommingLog.Message != "" {
+		job.Log(strings.TrimSpace(incommingLog.Message))
+		s.j[incommingLog.JobID] = job
 		return nil
 	}
-	return fmt.Errorf("Empty message for job '%s'", indexLog.JobID)
+	return fmt.Errorf("Empty message for job '%s'", incommingLog.JobID)
 }
 
 func (s *Server) ValidateJob(fn http.HandlerFunc) http.HandlerFunc {
@@ -159,22 +164,51 @@ func (s *Server) WorkTimeHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *Server) LogNewHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	job := s.j[vars["id"]]
+	var incommingLog IncommingAPILog
+	decoder := json.NewDecoder(r.Body)
+	encoder := json.NewEncoder(w)
+	if err := decoder.Decode(&incommingLog); err != nil {
+		logrus.Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(Error{
+			Code:    http.StatusBadRequest,
+			Message: fmt.Sprintf("Error with decoding request body: %v", err),
+		})
+		return
+	}
+	if incommingLog.Message == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		encoder.Encode(Error{
+			Code:    http.StatusBadRequest,
+			Message: "Empty log message",
+		})
+		return
+	}
+	job.Log(strings.TrimSpace(incommingLog.Message))
+	job.Updated()
+	s.j[vars["id"]] = job
+	w.WriteHeader(http.StatusCreated)
+	encoder.Encode(incommingLog)
+}
+
 func (s *Server) LogHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	job := s.j[vars["id"]]
 	encoder := json.NewEncoder(w)
-
 	switch r.Method {
 	case "DELETE":
 		logrus.Debug("Got log-delete request")
-		job.Log = ""
-		job.updatedAt = time.Now().UTC()
+		job.DeleteLog()
+		job.Updated()
 		s.j[vars["id"]] = job
 		w.WriteHeader(http.StatusOK)
 		return
 	default:
 	case "GET":
-		encoder.Encode(job.Log)
+		encoder.Encode(job.log)
 	}
 }
 
@@ -186,14 +220,14 @@ func (s *Server) StateHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "DELETE":
 		logrus.Debug("Got state_history-delete request")
-		job.StateHistory = nil
-		job.updatedAt = time.Now().UTC()
+		job.DeleteStateHistory()
+		job.Updated()
 		s.j[vars["id"]] = job
 		w.WriteHeader(http.StatusOK)
 		return
 	default:
 	case "GET":
-		encoder.Encode(job.StateHistory)
+		encoder.Encode(job.stateHistory)
 	}
 }
 
@@ -408,11 +442,7 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	j := s.j[vars["id"]]
 
-	j.updatedAt = time.Now()
-
-	if job.Log != "" {
-		j.Log += strings.TrimSpace(job.Log) + "\n"
-	}
+	j.Updated()
 
 	if job.InfoURL != "" {
 		j.InfoURL = job.InfoURL
