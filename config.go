@@ -53,7 +53,7 @@ func init() {
 	flag.StringVar(&datadir, "datadir", "", "data directory")
 	flag.IntVar(&parallelJobCount, "parallel-jobs", 0, "number of parallel jobs")
 	flag.StringVar(&listenAddr, "listen-addr", "", "listen address")
-	flag.StringVar(&logLevel, "log-level", "", "level which confd should log messages")
+	flag.StringVar(&logLevel, "log-level", "", "level which hub should log messages")
 	flag.BoolVar(&printVersion, "version", false, "print version and exit")
 	flag.StringVar(&redisAddr, "redis-addr", "", "Redis server URL")
 	flag.DurationVar(&redisIdleTimeout, "redis-idle-timeout", 0*time.Second, "close Redis connections after remaining idle for this duration")
