@@ -1,6 +1,10 @@
-package main
+package peskar
 
-import "time"
+import (
+	"path/filepath"
+	"strings"
+	"time"
+)
 
 type Job struct {
 	ID          string `json:"id,omitempty"`
@@ -21,13 +25,15 @@ type Job struct {
 }
 
 type LogItem struct {
-	AddedAt time.Time `json:"added_at"`
-	Message string    `json:"message"`
+	Initiator string    `json:"initiator"`
+	AddedAt   time.Time `json:"added_at"`
+	JobID     string    `json:"job_id,omitempty"`
+	Message   string    `json:"message"`
 }
 
 type StateHistoryItem struct {
-	ChangedAt time.Time `json:"changed_at"`
 	Initiator string    `json:"initiator"`
+	ChangedAt time.Time `json:"changed_at"`
 	FromState string    `json:"from_state"`
 	ToState   string    `json:"to_state"`
 }
@@ -81,12 +87,16 @@ func (j *Job) IsZombie() bool {
 	return false
 }
 
-func (j *Job) Log(message string) {
-	l := LogItem{
-		AddedAt: time.Now().UTC(),
-		Message: message,
-	}
-	j.log = append(j.log, l)
+func (j *Job) AddLogItem(log LogItem) {
+	log.AddedAt = time.Now().UTC()
+	j.log = append(j.log, log)
+}
+
+func (j *Job) Log(initiator, message string) {
+	j.AddLogItem(LogItem{
+		Initiator: initiator,
+		Message:   message,
+	})
 }
 
 func (j *Job) Updated() {
@@ -99,4 +109,26 @@ func (j *Job) DeleteLog() {
 
 func (j *Job) DeleteStateHistory() {
 	j.stateHistory = []StateHistoryItem{}
+}
+
+func (j *Job) Directory() string {
+	fileBase := filepath.Base(j.DownloadURL)
+	fileExt := filepath.Ext(fileBase)
+	return strings.TrimSuffix(fileBase, fileExt)
+}
+
+func (j *Job) LogList() []LogItem {
+	return j.log
+}
+
+func (j *Job) StateHistoryList() []StateHistoryItem {
+	return j.stateHistory
+}
+
+func (j *Job) Requested() {
+	j.requestedAt = time.Now()
+}
+
+func (j *Job) Added() {
+	j.AddedAt = time.Now().UTC()
 }

@@ -10,10 +10,14 @@ import (
 	"github.com/Sirupsen/logrus"
 )
 
+const (
+	BaseName = "peskar-hub"
+)
+
 func main() {
 	flag.Parse()
 	if printVersion {
-		fmt.Printf("peskar-hub %s\n", Version)
+		fmt.Printf("%s %s\n", BaseName, Version)
 		os.Exit(0)
 	}
 
@@ -21,10 +25,10 @@ func main() {
 		logrus.Fatal(err.Error())
 	}
 
-	logrus.Info("Starting peskar-hub")
+	logrus.Infof("Starting %s", BaseName)
 	logrus.Infof("HTTP listening on %s", config.ListenAddr)
 
-	s := NewServer(&config)
+	s := NewServer(BaseName, &config)
 
 	if err := s.redis.Check(); err != nil {
 		logrus.Error(err)

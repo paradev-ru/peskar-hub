@@ -1,4 +1,4 @@
-package main
+package peskar
 
 import "time"
 

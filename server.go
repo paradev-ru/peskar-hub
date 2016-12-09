@@ -5,34 +5,27 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
+	"os"
 	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"github.com/leominov/peskar-hub/lib"
+	"github.com/leominov/peskar-hub/peskar"
 	"github.com/leominov/peskar-hub/weburg"
 )
 
 type Server struct {
+	Name       string
 	startedAt  time.Time
 	config     *Config
 	r          *mux.Router
-	j          map[string]Job
-	w          map[string]Worker
+	j          map[string]peskar.Job
+	w          map[string]peskar.Worker
 	c          *Client
 	redis      *lib.RedisStore
 	indexerSub *lib.Subscribe
 	weburgMS   *weburg.MovieService
-}
-
-type IncommingBusLog struct {
-	JobID   string `json:"job_id"`
-	Message string `json:"message,omitempty"`
-}
-
-type IncommingAPILog struct {
-	Message string `json:"message,omitempty"`
 }
 
 type Error struct {
@@ -46,14 +39,19 @@ type HttpStatus struct {
 	ContentLength int64  `json:"content_length"`
 }
 
-func NewServer(config *Config) *Server {
+func NewServer(name string, config *Config) *Server {
 	weburgCli := weburg.NewClient(http.DefaultClient)
 	client := NewBackend(config.DataDir)
 	redis := lib.NewRedis(config.RedisMaxIdle, config.RedisIdleTimeout, config.RedisAddr)
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "na"
+	}
 	s := &Server{
+		Name:   fmt.Sprintf("%s-%s", name, hostname),
 		config: config,
-		j:      make(map[string]Job),
-		w:      make(map[string]Worker),
+		j:      make(map[string]peskar.Job),
+		w:      make(map[string]peskar.Worker),
 		c:      client,
 		redis:  redis,
 		weburgMS: &weburg.MovieService{
@@ -91,8 +89,8 @@ func (s *Server) Subscribe() error {
 }
 
 func (s *Server) IndexSuccessReceived(result []byte) error {
-	var incommingLog IncommingBusLog
-	var job Job
+	var incommingLog peskar.LogItem
+	var job peskar.Job
 	if err := json.Unmarshal(result, &incommingLog); err != nil {
 		return fmt.Errorf("Unmarshal error: %v (%s)", err, string(result))
 	}
@@ -101,7 +99,7 @@ func (s *Server) IndexSuccessReceived(result []byte) error {
 	}
 	job = s.j[incommingLog.JobID]
 	if incommingLog.Message != "" {
-		job.Log(strings.TrimSpace(incommingLog.Message))
+		job.AddLogItem(incommingLog)
 		s.j[incommingLog.JobID] = job
 		return nil
 	}
@@ -135,11 +133,11 @@ func (s *Server) CountActiveJobs() int {
 	return c
 }
 
-func (s *Server) NextJob() *Job {
+func (s *Server) NextJob() *peskar.Job {
 	for id, job := range s.j {
 		if job.IsAvailable() {
 			job.SetStateSystem("requested")
-			job.requestedAt = time.Now()
+			job.Requested()
 			s.j[id] = job
 			return &job
 		}
@@ -167,7 +165,7 @@ func (s *Server) WorkTimeHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) LogNewHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	job := s.j[vars["id"]]
-	var incommingLog IncommingAPILog
+	var incommingLog peskar.LogItem
 	decoder := json.NewDecoder(r.Body)
 	encoder := json.NewEncoder(w)
 	if err := decoder.Decode(&incommingLog); err != nil {
@@ -187,7 +185,7 @@ func (s *Server) LogNewHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	job.Log(strings.TrimSpace(incommingLog.Message))
+	job.AddLogItem(incommingLog)
 	job.Updated()
 	s.j[vars["id"]] = job
 	w.WriteHeader(http.StatusCreated)
@@ -208,7 +206,7 @@ func (s *Server) LogHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 	case "GET":
-		encoder.Encode(job.log)
+		encoder.Encode(job.LogList())
 	}
 }
 
@@ -227,7 +225,7 @@ func (s *Server) StateHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 	case "GET":
-		encoder.Encode(job.stateHistory)
+		encoder.Encode(job.StateHistoryList())
 	}
 }
 
@@ -294,7 +292,7 @@ func (s *Server) VersionHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) WorkerListHandler(w http.ResponseWriter, r *http.Request) {
 	logrus.Debug("Got worker-list request")
 	encoder := json.NewEncoder(w)
-	workerList := []Worker{}
+	workerList := []peskar.Worker{}
 	for _, worker := range s.w {
 		workerList = append(workerList, worker)
 	}
@@ -303,7 +301,7 @@ func (s *Server) WorkerListHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) UpdateWorkerInfo(r *http.Request) {
 	ip := getIP(r)
-	s.w[ip] = Worker{
+	s.w[ip] = peskar.Worker{
 		IP:         ip,
 		State:      "active",
 		UserAget:   r.Header.Get("User-Agent"),
@@ -327,7 +325,7 @@ func (s *Server) JobNextHandler(w http.ResponseWriter, r *http.Request) {
 	j := s.NextJob()
 	if j == nil {
 		w.WriteHeader(http.StatusNotFound)
-		encoder.Encode(Job{})
+		encoder.Encode(peskar.Job{})
 		return
 	}
 	encoder.Encode(j)
@@ -335,7 +333,7 @@ func (s *Server) JobNextHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) JobNewHandler(w http.ResponseWriter, r *http.Request) {
 	logrus.Debug("Got job-new request")
-	var job Job
+	var job peskar.Job
 	decoder := json.NewDecoder(r.Body)
 	encoder := json.NewEncoder(w)
 	if err := decoder.Decode(&job); err != nil {
@@ -365,29 +363,29 @@ func (s *Server) JobNewHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) JobListHandler(w http.ResponseWriter, r *http.Request) {
 	logrus.Debug("Got job-list request")
 	encoder := json.NewEncoder(w)
-	jobList := []Job{}
+	jobList := []peskar.Job{}
 	for _, job := range s.j {
 		jobList = append(jobList, job)
 	}
 	encoder.Encode(jobList)
 }
 
-func (s *Server) AddJob(job Job) (Job, error) {
+func (s *Server) AddJob(job peskar.Job) (peskar.Job, error) {
 	if job.DownloadURL == "" {
-		return Job{}, errors.New("Download URL cant be empty")
+		return peskar.Job{}, errors.New("Download URL cant be empty")
 	}
 	for _, jb := range s.j {
 		if !jb.IsDone() && jb.DownloadURL == job.DownloadURL {
-			return Job{}, fmt.Errorf("Job for '%s' already exists", jb.DownloadURL)
+			return peskar.Job{}, fmt.Errorf("Job for '%s' already exists", jb.DownloadURL)
 		}
 	}
 	jobID, err := RandomUuid()
 	if err != nil {
-		return Job{}, errors.New("Error generating job ID")
+		return peskar.Job{}, errors.New("Error generating job ID")
 	}
 
 	job.ID = jobID
-	job.AddedAt = time.Now().UTC()
+	job.Added()
 	job.SetStateSystem("pending")
 
 	s.j[job.ID] = job
@@ -406,9 +404,7 @@ func (s *Server) JobDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	logrus.Debug("Got job-delete request")
 	vars := mux.Vars(r)
 	encoder := json.NewEncoder(w)
-
 	job := s.j[vars["id"]]
-
 	if !job.IsAvailable() && !job.IsDone() {
 		logrus.Errorf("Cant delete active job '%s'", job.ID)
 		w.WriteHeader(http.StatusForbidden)
@@ -418,7 +414,6 @@ func (s *Server) JobDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
 	logrus.Infof("Job '%s' deleted", job.ID)
 	delete(s.j, job.ID)
 	w.WriteHeader(http.StatusOK)
@@ -429,7 +424,7 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	decoder := json.NewDecoder(r.Body)
 	encoder := json.NewEncoder(w)
-	var job Job
+	var job peskar.Job
 	if err := decoder.Decode(&job); err != nil {
 		logrus.Error(err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -447,11 +442,9 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	if job.InfoURL != "" {
 		j.InfoURL = job.InfoURL
 	}
-
 	if job.Name != "" {
 		j.Name = job.Name
 	}
-
 	if job.Description != "" {
 		j.Description = job.Description
 	}
@@ -466,26 +459,21 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-
 		if job.State == "pending" {
 			j.StartedAt = time.Time{}
 			j.FinishedAt = time.Time{}
 		}
-
 		if j.State == "requested" && job.State == "working" {
 			j.StartedAt = time.Now().UTC()
 		}
-
 		if job.IsDone() {
 			j.FinishedAt = time.Now().UTC()
 		}
-
 		j.SetStateUser(job.State)
 		s.redis.Send("jobs", j)
 	}
 	logrus.Infof("Job '%s' updated", j.ID)
 	s.j[vars["id"]] = j
-
 	encoder.Encode(j)
 }
 
