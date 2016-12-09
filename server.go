@@ -83,12 +83,12 @@ func (s *Server) Subscribe() error {
 	if err := s.redis.Check(); err != nil {
 		return err
 	}
-	s.indexerSub = s.redis.NewSubscribe("index")
-	s.indexerSub.SuccessReceivedCallback = s.IndexSuccessReceived
+	s.indexerSub = s.redis.NewSubscribe(peskar.JobLogChannel)
+	s.indexerSub.SuccessReceivedCallback = s.JobLogSuccessReceived
 	return s.indexerSub.Run()
 }
 
-func (s *Server) IndexSuccessReceived(result []byte) error {
+func (s *Server) JobLogSuccessReceived(result []byte) error {
 	var incommingLog peskar.LogItem
 	var job peskar.Job
 	if err := json.Unmarshal(result, &incommingLog); err != nil {
@@ -185,6 +185,7 @@ func (s *Server) LogNewHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	incommingLog.Initiator = "api"
 	job.AddLogItem(incommingLog)
 	job.Updated()
 	s.j[vars["id"]] = job
