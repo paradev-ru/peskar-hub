@@ -470,7 +470,7 @@ func (s *Server) JobUpdateHandler(w http.ResponseWriter, r *http.Request) {
 			j.FinishedAt = time.Now().UTC()
 		}
 		j.SetStateUser(job.State)
-		s.redis.Send("jobs", j)
+		s.redis.Send(peskar.JobEventsChannel, j)
 	}
 	logrus.Infof("Job '%s' updated", j.ID)
 	s.j[vars["id"]] = j

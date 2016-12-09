@@ -38,7 +38,7 @@ type StateHistoryItem struct {
 	ToState   string    `json:"to_state"`
 }
 
-func (j *Job) SetState(state, initiator string) error {
+func (j *Job) SetState(initiator, state string) error {
 	h := StateHistoryItem{
 		ChangedAt: time.Now().UTC(),
 		Initiator: initiator,
@@ -51,11 +51,11 @@ func (j *Job) SetState(state, initiator string) error {
 }
 
 func (j *Job) SetStateUser(state string) error {
-	return j.SetState(state, "user")
+	return j.SetState("user", state)
 }
 
 func (j *Job) SetStateSystem(state string) error {
-	return j.SetState(state, "system")
+	return j.SetState("system", state)
 }
 
 func (j *Job) IsAvailable() bool {
