@@ -10,9 +10,9 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
-	"github.com/leominov/peskar-hub/lib"
-	"github.com/leominov/peskar-hub/peskar"
-	"github.com/leominov/peskar-hub/weburg"
+	"github.com/paradev-ru/peskar-hub/lib"
+	"github.com/paradev-ru/peskar-hub/peskar"
+	"github.com/paradev-ru/peskar-hub/weburg"
 )
 
 type Server struct {
